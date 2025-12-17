@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Lavandería – Preview</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            padding: 20px;
+        }
+
+        form,
+        table {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 800px;
+            margin-bottom: 30px;
+        }
+
+        input,
+        select,
+        button {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+        }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        th {
+            background: #eee;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Registrar Orden</h2>
+
+    <form id="formOrden">
+        <input type="text" id="folio" placeholder="Folio" required>
+        <input type="text" id="cliente" placeholder="Nombre del cliente" required>
+        <input type="number" id="kilos" placeholder="Kilos" step="0.1">
+        <input type="number" id="precio" placeholder="Precio total" step="0.01">
+
+        <select id="estado_pago">
+            <option value="pagado">Pagado</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="transferencia">Transferencia</option>
+        </select>
+
+        <button type="submit">Guardar</button>
+    </form>
+
+    <h2>Órdenes registradas</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Folio</th>
+                <th>Cliente</th>
+                <th>Kilos</th>
+                <th>Precio</th>
+                <th>Pago</th>
+            </tr>
+        </thead>
+        <tbody id="tablaOrdenes"></tbody>
+    </table>
+
+    <script>
+        const SUPABASE_URL = "https://safyzufztlhqyoacbwkt.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_BIM5DKHGHMO-7oFoX3Hnvw_DLiW_Yy7";
+
+        const headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": `Bearer ${SUPABASE_KEY}`,
+            "Content-Type": "application/json"
+        };
+
+        // 🔹 Crear cliente y orden
+        document.getElementById("formOrden").addEventListener("submit", async e => {
+            e.preventDefault();
+
+            const nombreCliente = cliente.value;
+
+            // 1️⃣ Insertar cliente
+            const resCliente = await fetch(`${SUPABASE_URL}/rest/v1/clientes`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({ nombre: nombreCliente })
+            });
+
+            // 2️⃣ Obtener cliente recién creado
+            const clienteData = await fetch(
+                `${SUPABASE_URL}/rest/v1/clientes?nombre=eq.${nombreCliente}&select=id_cliente`,
+                { headers }
+            ).then(r => r.json());
+
+            const id_cliente = clienteData[0].id_cliente;
+
+            // 3️⃣ Insertar orden
+            await fetch(`${SUPABASE_URL}/rest/v1/ordenes`, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({
+                    folio: folio.value,
+                    id_cliente,
+                    fecha_entrada: new Date().toISOString().slice(0, 10),
+                    hora_entrada: new Date().toLocaleTimeString("en-GB"),
+                    kilos: kilos.value,
+                    precio_total: precio.value,
+                    estado_pago: estado_pago.value
+                })
+            });
+
+            formOrden.reset();
+            cargarOrdenes();
+        });
+
+        // 🔹 Mostrar órdenes
+        async function cargarOrdenes() {
+            const res = await fetch(
+                `${SUPABASE_URL}/rest/v1/ordenes?select=folio,kilos,precio_total,estado_pago,clientes(nombre)`,
+                { headers }
+            );
+            const data = await res.json();
+
+            tablaOrdenes.innerHTML = "";
+            data.forEach(o => {
+                tablaOrdenes.innerHTML += `
+      <tr>
+        <td>${o.folio}</td>
+        <td>${o.clientes?.nombre || ""}</td>
+        <td>${o.kilos}</td>
+        <td>$${o.precio_total}</td>
+        <td>${o.estado_pago}</td>
+      </tr>
+    `;
+            });
+        }
+
+        cargarOrdenes();
+    </script>
+
+</body>
+
+</html>
