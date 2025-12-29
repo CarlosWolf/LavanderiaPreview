@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 
 <head>
     <meta charset="UTF-8">
@@ -49,104 +51,193 @@
         th {
             background: #eee;
         }
+
+        /*Estilo de tarjetas*/
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 6px solid #2563eb;
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .card p {
+            font-size: 22px;
+            margin: 10px 0 0;
+            font-weight: bold;
+        }
+        /*Responsive*/
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+        form {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+        @media (min-width: 600px) {
+            form {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            form button {
+                grid-column: span 2;
+            }
+        }
+        .table-wrapper {
+            overflow-x: auto;
+        }
+        button {
+    font-size: 16px;
+}
+input, select {
+    font-size: 16px;
+}
+
+
     </style>
 </head>
 
 <body>
+    <div class="container">
+        <h2>Resumen del día</h2>
 
-    <h2>Registrar Orden</h2>
+        <div id="dashboard"
+            style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;max-width:800px;margin-bottom:30px;">
 
-    <form id="formOrden">
-        <input type="text" id="folio" placeholder="Folio" required>
-        <input type="text" id="cliente" placeholder="Nombre del cliente" required>
-        <input type="number" id="kilos" placeholder="Kilos" step="0.1">
-        <input type="number" id="precio" placeholder="Precio total" step="0.01">
+            <div class="card">
+                <h3>Órdenes hoy</h3>
+                <p id="dashOrdenes">0</p>
+            </div>
 
-        <select id="estado_pago">
-            <option value="pagado">Pagado</option>
-            <option value="pendiente">Pendiente</option>
-            <option value="transferencia">Transferencia</option>
-        </select>
+            <div class="card">
+                <h3>Ventas hoy</h3>
+                <p id="dashVentas">$0</p>
+            </div>
 
-        <button type="submit">Guardar</button>
-    </form>
+            <div class="card">
+                <h3>Pagadas</h3>
+                <p id="dashPagadas">0</p>
+            </div>
 
-    <h2>Órdenes registradas</h2>
+            <div class="card">
+                <h3>Pendientes</h3>
+                <p id="dashPendientes">0</p>
+            </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Folio</th>
-                <th>Cliente</th>
-                <th>Kilos</th>
-                <th>Precio</th>
-                <th>Pago</th>
-            </tr>
-        </thead>
-        <tbody id="tablaOrdenes"></tbody>
-    </table>
+        </div>
 
-    <script>
-        const SUPABASE_URL = "https://safyzufztlhqyoacbwkt.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_BIM5DKHGHMO-7oFoX3Hnvw_DLiW_Yy7";
 
-        const headers = {
-            "apikey": SUPABASE_KEY,
-            "Authorization": `Bearer ${SUPABASE_KEY}`,
-            "Content-Type": "application/json"
-        };
+        <h2>Registrar Orden</h2>
 
-        // 🔹 Crear cliente y orden
-        document.getElementById("formOrden").addEventListener("submit", async e => {
-            e.preventDefault();
+        <form id="formOrden">
+            <input type="text" id="folio" placeholder="Folio" required>
+            <input type="date" id="fecha_entrada" required>
+            <input type="text" id="cliente" placeholder="Nombre del cliente" required>
+            <input type="number" id="kilos" placeholder="Kilos" step="0.1">
+            <input type="number" id="precio" placeholder="Precio total" step="0.01">
 
-            const nombreCliente = cliente.value;
+            <select id="estado_pago">
+                <option value="pagado">Pagado</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="transferencia">Transferencia</option>
+            </select>
 
-            // 1️⃣ Insertar cliente
-            const resCliente = await fetch(`${SUPABASE_URL}/rest/v1/clientes`, {
-                method: "POST",
-                headers,
-                body: JSON.stringify({ nombre: nombreCliente })
+            <button type="submit">Guardar</button>
+        </form>
+
+        <h2>Órdenes registradas</h2>
+        <input type="date" id="filtroFecha">
+        <button onclick="filtrarPorFecha()">Filtrar</button>
+
+        <div class="table-wrapper">
+            <table>
+            <thead>
+                <tr>
+                    <th>Folio</th>
+                    <th>Cliente</th>
+                    <th>Kilos</th>
+                    <th>Precio</th>
+                    <th>Pago</th>
+                </tr>
+            </thead>
+            <tbody id="tablaOrdenes"></tbody>
+        </table>
+        </div>
+        
+
+        <script>
+            const SUPABASE_URL = "https://safyzufztlhqyoacbwkt.supabase.co";
+            const SUPABASE_KEY = "sb_publishable_BIM5DKHGHMO-7oFoX3Hnvw_DLiW_Yy7";
+
+            const headers = {
+                "apikey": SUPABASE_KEY,
+                "Authorization": `Bearer ${SUPABASE_KEY}`,
+                "Content-Type": "application/json"
+            };
+            // ✅ PRECARGAR FECHA DE HOY
+            document.getElementById("fecha_entrada").value =
+                new Date().toISOString().slice(0, 10);
+
+            // 🔹 Crear cliente y orden
+            document.getElementById("formOrden").addEventListener("submit", async e => {
+                e.preventDefault();
+
+                const nombreCliente = cliente.value;
+
+                // 1️⃣ Insertar cliente
+                const resCliente = await fetch(`${SUPABASE_URL}/rest/v1/clientes`, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({ nombre: nombreCliente })
+                });
+
+                // 2️⃣ Obtener cliente recién creado
+                const clienteData = await fetch(
+                    `${SUPABASE_URL}/rest/v1/clientes?nombre=eq.${nombreCliente}&select=id_cliente`,
+                    { headers }
+                ).then(r => r.json());
+
+                const id_cliente = clienteData[0].id_cliente;
+
+                // 3️⃣ Insertar orden
+                await fetch(`${SUPABASE_URL}/rest/v1/ordenes`, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({
+                        folio: folio.value,
+                        id_cliente,
+                        fecha_entrada: fecha_entrada.value,
+                        hora_entrada: new Date().toLocaleTimeString("en-GB"),
+                        kilos: kilos.value,
+                        precio_total: precio.value,
+                        estado_pago: estado_pago.value
+                    })
+                });
+
+                formOrden.reset();
+                cargarOrdenes();
+                cargarDashboard();
             });
 
-            // 2️⃣ Obtener cliente recién creado
-            const clienteData = await fetch(
-                `${SUPABASE_URL}/rest/v1/clientes?nombre=eq.${nombreCliente}&select=id_cliente`,
-                { headers }
-            ).then(r => r.json());
+            // 🔹 Mostrar órdenes
+            async function cargarOrdenes() {
+                const res = await fetch(
+                    `${SUPABASE_URL}/rest/v1/ordenes?select=folio,kilos,precio_total,estado_pago,clientes(nombre)`,
+                    { headers }
+                );
+                const data = await res.json();
 
-            const id_cliente = clienteData[0].id_cliente;
-
-            // 3️⃣ Insertar orden
-            await fetch(`${SUPABASE_URL}/rest/v1/ordenes`, {
-                method: "POST",
-                headers,
-                body: JSON.stringify({
-                    folio: folio.value,
-                    id_cliente,
-                    fecha_entrada: new Date().toISOString().slice(0, 10),
-                    hora_entrada: new Date().toLocaleTimeString("en-GB"),
-                    kilos: kilos.value,
-                    precio_total: precio.value,
-                    estado_pago: estado_pago.value
-                })
-            });
-
-            formOrden.reset();
-            cargarOrdenes();
-        });
-
-        // 🔹 Mostrar órdenes
-        async function cargarOrdenes() {
-            const res = await fetch(
-                `${SUPABASE_URL}/rest/v1/ordenes?select=folio,kilos,precio_total,estado_pago,clientes(nombre)`,
-                { headers }
-            );
-            const data = await res.json();
-
-            tablaOrdenes.innerHTML = "";
-            data.forEach(o => {
-                tablaOrdenes.innerHTML += `
+                tablaOrdenes.innerHTML = "";
+                data.forEach(o => {
+                    tablaOrdenes.innerHTML += `
       <tr>
         <td>${o.folio}</td>
         <td>${o.clientes?.nombre || ""}</td>
@@ -155,11 +246,87 @@
         <td>${o.estado_pago}</td>
       </tr>
     `;
-            });
-        }
+                });
+            }
+            async function cargarDashboard() {
+                const hoy = new Date().toISOString().slice(0, 10);
 
-        cargarOrdenes();
-    </script>
+                const res = await fetch(
+                    `${SUPABASE_URL}/rest/v1/ordenes?fecha_entrada=eq.${hoy}`,
+                    { headers }
+                );
+
+                const data = await res.json();
+
+                let totalVentas = 0;
+                let pagadas = 0;
+                let pendientes = 0;
+
+                data.forEach(o => {
+                    totalVentas += Number(o.precio_total || 0);
+
+                    if (o.estado_pago === "pagado") {
+                        pagadas++;
+                    } else {
+                        pendientes++;
+                    }
+                });
+
+                document.getElementById("dashOrdenes").textContent = data.length;
+                document.getElementById("dashVentas").textContent = `$${totalVentas.toFixed(2)}`;
+                document.getElementById("dashPagadas").textContent = pagadas;
+                document.getElementById("dashPendientes").textContent = pendientes;
+            }
+            async function filtrarPorFecha() {
+                const fecha = document.getElementById("filtroFecha").value;
+
+                if (!fecha) {
+                    alert("Selecciona una fecha");
+                    return;
+                }
+
+                const res = await fetch(
+                    `${SUPABASE_URL}/rest/v1/ordenes?fecha_entrada=eq.${fecha}&select=folio,kilos,precio_total,estado_pago,clientes(nombre)`,
+                    { headers }
+                );
+
+                const data = await res.json();
+
+                const tabla = document.getElementById("tablaOrdenes");
+                tabla.innerHTML = "";
+
+                if (data.length === 0) {
+                    tabla.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align:center;">
+                    No hay órdenes para esta fecha
+                </td>
+            </tr>
+        `;
+                    return;
+                }
+
+                data.forEach(o => {
+                    tabla.innerHTML += `
+            <tr>
+                <td>${o.folio}</td>
+                <td>${o.clientes?.nombre || ""}</td>
+                <td>${o.kilos}</td>
+                <td>$${o.precio_total}</td>
+                <td>${o.estado_pago}</td>
+            </tr>
+        `;
+                });
+            }
+
+
+            cargarOrdenes();
+            cargarDashboard();
+
+
+        </script>
+
+    </div>
 
 </body>
 
